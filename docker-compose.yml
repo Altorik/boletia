@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${BOLETIA_DBNAME}
+      POSTGRES_USER: ${BOLETIA_DBUSER}
+      POSTGRES_PASSWORD: ${BOLETIA_DBPASS}
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: postgres -c shared_preload_libraries='pg_stat_statements'
+
+  redis:
+    image: redis:latest
+    container_name: myredis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  boletia-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+
+  boletia-get:
+    build:
+      context: ./getCurrency
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8081:8080"
+
+volumes:
+  redis-data:
