@@ -1,0 +1,6 @@
+# Boletia Test
+Para ejecutar esta aplicación es necesario tener instalado Docker, Docker Composer
+
+## Instalación
+1. Clonar el repositorio
+2. Ejecutar el comando `docker-compose up -d` en la raíz del proyecto
