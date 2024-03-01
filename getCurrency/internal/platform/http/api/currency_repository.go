@@ -55,7 +55,7 @@ func (m *CurrencyRepository) Get(ctx context.Context) (*bol.CurrencyData, bol.Ap
 	elapsed := time.Since(start)
 	apiCall.StatusCode = resp.StatusCode
 	if resp.StatusCode >= 300 || resp.StatusCode < 200 {
-		apiCall.ErrorMessage = err.Error()
+		apiCall.ErrorMessage = resp.Status
 		return &bol.CurrencyData{}, apiCall, errors.New("error get data from currencyapi endpoint: " + string(rawData))
 	}
 	var data bol.CurrencyData

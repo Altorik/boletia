@@ -28,14 +28,17 @@ func NewCurrencyService(currencyRepository bol.CurrencyRepository, database bol.
 
 // GetCurrency implements to obtain.CurrencyService interface.
 func (s CurrencyService) GetCurrency(ctx context.Context) error {
-	currency, apicall, err := s.currencyRepository.Get(ctx)
-	if err = s.database.SaveCall(ctx, apicall); err != nil {
+	currency, apicall, err2 := s.currencyRepository.Get(ctx)
+	if err := s.database.SaveCall(ctx, apicall); err != nil {
 		return err
+	}
+	if err2 != nil {
+		return err2
 	}
 	if len(currency.Data) < 1 {
 		return nil
 	}
-	if err = s.database.Save(ctx, currency); err != nil {
+	if err := s.database.Save(ctx, currency); err != nil {
 		return err
 	}
 

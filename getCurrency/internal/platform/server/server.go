@@ -3,17 +3,12 @@ package server
 import (
 	"boletia/internal/obtain"
 	"context"
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
 	"boletia/internal/platform/server/handler/currency"
-	"boletia/internal/platform/server/handler/health"
-	"boletia/internal/platform/server/middleware/logging"
-	"boletia/internal/platform/server/middleware/recovery"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,46 +19,38 @@ type Server struct {
 	shutdownTimeout time.Duration
 }
 
-func New(ctx context.Context, host string, port uint, shutdownTimeout time.Duration, getCurrency obtain.CurrencyService) (context.Context, Server) {
-	gin.SetMode(gin.ReleaseMode)
-	srv := Server{
-		engine:   gin.New(),
-		httpAddr: fmt.Sprintf("%s:%d", host, port),
+//func Run(ctx context.Context, tickDuration time.Duration, getCurrency obtain.CurrencyService) error {
+//	serverContext := serverContext(ctx)
+//	defer panicHandler()
+//	return currency.ObtainHandler(serverContext, getCurrency)
+//}
 
-		shutdownTimeout: shutdownTimeout,
-		getCurrency:     getCurrency,
-	}
+func Run(ctx context.Context, tickDuration time.Duration, getCurrency obtain.CurrencyService) error {
+	ticker := time.NewTicker(tickDuration)
+	defer ticker.Stop()
+	serverContext := serverContext(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Terminating periodic task")
+			return nil
+		case <-ticker.C:
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Recovered from panic: %v", r)
+					}
+				}()
 
-	srv.registerRoutes()
-	return serverContext(ctx), srv
-}
-
-func (s *Server) registerRoutes() {
-	s.engine.Use(recovery.Middleware(), logging.Middleware())
-
-	s.engine.GET("/health", health.CheckHandler())
-	s.engine.GET("/getData", currency.ObtainHandler(s.getCurrency))
-}
-
-func (s *Server) Run(ctx context.Context) error {
-	log.Println("Server running on", s.httpAddr)
-
-	srv := &http.Server{
-		Addr:    s.httpAddr,
-		Handler: s.engine,
-	}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("server shut down", err)
+				err := currency.ObtainHandler(serverContext, getCurrency)
+				if err != nil {
+					log.Printf("Error fetching data: %v", err)
+				} else {
+					log.Println("Data fetched successfully")
+				}
+			}()
 		}
-	}()
-
-	<-ctx.Done()
-	ctxShutDown, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
-	defer cancel()
-
-	return srv.Shutdown(ctxShutDown)
+	}
 }
 
 func serverContext(ctx context.Context) context.Context {

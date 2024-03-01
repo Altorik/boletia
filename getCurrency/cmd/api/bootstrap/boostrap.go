@@ -46,8 +46,7 @@ func Run() error {
 	databaseRepository := postgres.NewDatabaseRepository(dbpool, cfg.DbTimeout, cfg.DbTableName)
 	getCurrencyService := obtain.NewCurrencyService(currencyRepository, databaseRepository)
 
-	ctx, srv := server.New(context.Background(), cfg.Host, cfg.Port, cfg.ShutdownTimeout, getCurrencyService)
-	return srv.Run(ctx)
+	return server.Run(context.Background(), cfg.TickDuration, getCurrencyService)
 }
 
 type config struct {
@@ -55,6 +54,7 @@ type config struct {
 	Host            string        `default:"0.0.0.0"`
 	Port            uint          `default:"80"`
 	ShutdownTimeout time.Duration `default:"10s"`
+	TickDuration    time.Duration `default:"1s"`
 	// Database configuration
 	DbUser      string        `default:"altorik"`
 	DbPass      string        `default:"superpass"`
